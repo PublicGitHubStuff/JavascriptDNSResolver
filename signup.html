@@ -1,0 +1,150 @@
+<html>
+    <head>
+        <title>Newsletter signup</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+    </head>
+    <body onLoad=showForm()>
+        <noscript>
+            <H1><br><br><br>Enable JavaScript to access this website.</H1>
+        </noscript>
+        
+        <script>
+            // global variables
+            domain = "";
+            mxFound = false;
+            NonValidTLD = false;
+    
+            function mxCallback() {
+
+                if (mxFound) {
+        
+                    document.getElementById("lblYourerror").innerHTML = "Valid email.";
+                    document.getElementById("btnSubmit").disabled = false;
+
+                }
+                else {
+
+                    if (NonValidTLD) {
+               
+                        document.getElementById("lblYourerror").innerHTML = "ERROR: " + domain + " is not a valid domain name.";
+                        document.getElementById("txtYouremail").setfocus();
+
+                    }
+                    else {
+               
+                        document.getElementById("lblYourerror").innerHTML = "ERROR: " + domain + " does not have a mail server.";
+                        document.getElementById("txtYouremail").setfocus();
+
+                    }
+
+                }
+      
+            }
+
+            function showForm() {
+                document.getElementById("signupField").style.visibility=""; // if javascript disabled then fieldset stays hidden !!!!
+                document.getElementById("txtYouremail").focus();
+
+                // change the following if English isn't your preferred language
+                document.getElementById("lblYourname").innerHTML = "Your name:";
+                document.getElementById("lblYouremail").innerHTML = "Your email:";
+                document.getElementById("lblYourerror").innerHTML = "";
+                document.getElementById("lblSubmit").innerHTML = "Submit";
+            }
+        </script>
+        
+        <form namy=frmEmail id=frmEmail action=POST target=mydatabase.php>
+            <fieldset name=signupField id=signupField style="width:0px; visibility:hidden">
+                <legend>Sign up here</legend>
+                <label for=txtYouremail><span name=lblYouremail id=lblYouremail></span></label>
+                <input type=text name=txtYouremail id=txtYouremail size=20 autocomplete=off placeholder="Your email address here" title="Your email" onfocusout=checkEmail() >
+                <br><br>
+                <label for=txtYourname><span name=lblYourname id=lblYourname></span></label>
+                <input type=text name=txtYourname id=txtYourname size=20 autocomplete=off placeholder="Your name here" title="Your name" >
+                <br><br>
+                <button type=submit name=btnSubmit id=btnSubmit disabled><span name=lblSubmit id=lblSubmit ></span></button>
+                <br><br>
+                <label ><span name=lblYourerror id=lblYourerror>Error</span></label>
+            </fieldset>
+        </form>
+        
+        <script>
+        
+            function checkEmail() {
+                
+                document.getElementById("lblYourerror").innerHTML = "";
+                document.getElementById("btnSubmit").disabled = true;
+                mxFound = false;
+                NonValidTLD = false;
+              
+                // do simple regex to get rid of obvious mistakes
+                if (/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(frmEmail.txtYouremail.value)) {
+                    
+                    tmpDomain = frmEmail.txtYouremail.value.split("@");
+                    domain = tmpDomain[1];
+                    // Now check if domain has a valid MX record so it can receive emails
+                    
+                    let mxCheck = new Promise(function(mxResolve, mxReject) {
+
+                    url ="https://cloudflare-dns.com/dns-query?name=" + encodeURIComponent(domain) + "&type=MX";
+                    xmlhttp = new XMLHttpRequest();
+                    xmlhttp.onreadystatechange = function() {
+
+                        if (this.readyState == 4 && this.status == 200) {   
+                
+                            myJSON = JSON.parse(this.responseText);
+
+                            try {
+                
+                                tmp = myJSON.Answer[0].name;
+                                mxFound = true;
+                                mxResolve();
+            
+                                
+                            }
+                            
+                            catch(err){ // no MX records so is it even a real domain name?
+            
+                                try {
+                    
+                                    tmp = myJSON.Authority.name;   // if Authority name appears, you've gone back to the root servers
+                                    NonValidTLD = true;
+                    
+                                }
+                                catch(err) {
+                    
+                                }
+                            mxReject();
+                    
+                            }
+
+                        } 
+            
+                    };
+                        
+                    xmlhttp.open("GET", url, false);
+                    xmlhttp.setRequestHeader("Accept","application/dns-json");
+                    xmlhttp.send(); 
+        
+                    });
+
+                    mxCheck.then(
+                    function(value) {mxCallback();},
+                    function(error) {mxCallback();}
+                    );
+
+                } else {
+
+                    document.getElementById("lblYourerror").innerHTML = "ERROR: Invalid email address.";
+                    document.getElementById("txtYouremail").setfocus();
+
+                    
+                } 
+
+
+            }
+
+        </script>
+
+    </body>
+</html>
